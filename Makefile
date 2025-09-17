@@ -14,8 +14,27 @@ build: ## Build the application
 	go build -o bin/server cmd/server/main.go
 
 .PHONY: test
-test: ## Run tests
-	go test -v ./...
+test: ## Run unit tests
+	go test -v ./internal/...
+
+.PHONY: test-integration
+test-integration: ## Run integration tests
+	docker compose -f docker-compose.test.yml up -d --wait
+	@echo "Waiting for database to be ready..."
+	@sleep 10
+	go test -v ./tests/integration/...
+	docker compose -f docker-compose.test.yml down
+
+.PHONY: test-coverage
+test-coverage: ## Run tests with coverage
+	go test -v -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+.PHONY: test-all
+test-all: ## Run all tests (unit + integration)
+	make test
+	make test-integration
 
 .PHONY: migrate-up
 migrate-up: ## Run database migrations up
